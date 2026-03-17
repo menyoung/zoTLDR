@@ -35,11 +35,18 @@ export async function callLLM(req: LLMRequest): Promise<string> {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`API_ERROR:${response.status}:${body}`);
+    // Sanitize: don't leak API key into error notes
+    const sanitized = body.replace(/key=[^&\s"]+/g, "key=REDACTED");
+    throw new Error(`API_ERROR:${response.status}:${sanitized}`);
   }
 
   const data = (await response.json()) as unknown as {
-    candidates: { content: { parts: { text: string }[] } }[];
+    candidates?: { content?: { parts?: { text: string }[] } }[];
   };
-  return data.candidates[0].content.parts[0].text;
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error("API_ERROR:empty response from model");
+  }
+  return text;
 }

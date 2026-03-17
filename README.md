@@ -20,7 +20,7 @@ Create a **note** in your Zotero library (ideally a group library so the whole t
 ```
 ---
 api_key: AIzaSy...
-model: gemini-3.0-flash
+model: gemini-3-flash-preview
 max_tokens: 2000
 ---
 

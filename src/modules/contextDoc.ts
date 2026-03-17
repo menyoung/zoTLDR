@@ -45,9 +45,10 @@ function parseFrontmatter(raw: string): {
 }
 
 export async function loadContextDoc(): Promise<ContextConfig> {
-  const prefKey = `${config.prefsPrefix}.contextDocKey`;
-  const key = Zotero.Prefs.get(prefKey, true) as string;
-  Zotero.log(`[zoTLDR] loadContextDoc: prefKey=${prefKey} value="${key}"`);
+  const key = Zotero.Prefs.get(
+    `${config.prefsPrefix}.contextDocKey`,
+    true,
+  ) as string;
   if (!key) throw new Error("NO_CONTEXT_DOC");
 
   // Search all libraries for the context doc by key
@@ -64,9 +65,7 @@ export async function loadContextDoc(): Promise<ContextConfig> {
   if (!doc || doc.itemType !== "note") throw new Error("CONTEXT_DOC_NOT_FOUND");
 
   const raw = stripHTML(doc.getNote());
-  Zotero.log(`[zoTLDR] raw context doc:\n${raw.slice(0, 300)}`);
   const { frontmatter, body } = parseFrontmatter(raw);
-  Zotero.log(`[zoTLDR] parsed frontmatter keys: ${Object.keys(frontmatter).join(", ")}`);
 
   if (!frontmatter.api_key) throw new Error("NO_API_KEY");
 

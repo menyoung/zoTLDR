@@ -168,4 +168,3 @@ export async function chat(
   }
 }
 
-export { loadContextDoc };
