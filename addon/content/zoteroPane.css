@@ -1,0 +1,103 @@
+/* zoTLDR — AI Summary panel styles */
+
+.zotldr-summary-box {
+  overflow-y: auto;
+  max-height: 200px;
+  padding: 8px;
+  border: 1px solid var(--fill-quinary);
+  border-radius: 4px;
+  background: var(--material-background);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.zotldr-summary-box:empty::before {
+  content: "No summary yet \2014  click Summarize.";
+  color: var(--fill-secondary);
+  font-style: italic;
+}
+
+.zotldr-chat-box {
+  overflow-y: auto;
+  max-height: 120px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.zotldr-chat-box:empty {
+  display: none;
+}
+
+.zotldr-chat-user {
+  text-align: right;
+  color: var(--fill-secondary);
+  margin: 4px 0;
+}
+
+.zotldr-chat-assistant {
+  text-align: left;
+  margin: 4px 0;
+}
+
+.zotldr-input-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.zotldr-input-row input {
+  flex: 1;
+  font-size: 13px;
+}
+
+.zotldr-button-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.zotldr-button-row button {
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.zotldr-button-row button:hover {
+  opacity: 0.85;
+}
+
+.zotldr-button-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.zotldr-button-row button:focus,
+.zotldr-input-row input:focus {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+}
+
+.zotldr-dirty-indicator {
+  color: var(--fill-secondary);
+  font-size: 11px;
+  font-style: italic;
+  margin-left: 8px;
+}
+
+.zotldr-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--fill-quinary);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: zotldr-spin 0.6s linear infinite;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+@keyframes zotldr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

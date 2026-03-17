@@ -1,0 +1,8 @@
+node_modules/
+.scaffold/
+*.xpi
+*.tsbuildinfo
+.env
+.DS_Store
+typings/i10n.d.ts
+typings/prefs.d.ts

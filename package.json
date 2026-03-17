@@ -1,0 +1,58 @@
+{
+  "name": "zotldr",
+  "type": "module",
+  "version": "0.1.5",
+  "description": "AI-powered paper summarization for Zotero with iterative chat refinement",
+  "config": {
+    "addonName": "zoTLDR",
+    "addonID": "zotldr@menyoung.github.io",
+    "addonRef": "zotldr",
+    "addonInstance": "ZoTLDR",
+    "prefsPrefix": "extensions.zotero.zotldr"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/menyoung/zoTLDR.git"
+  },
+  "author": "menyoung",
+  "bugs": {
+    "url": "https://github.com/menyoung/zoTLDR/issues"
+  },
+  "homepage": "https://github.com/menyoung/zoTLDR#readme",
+  "license": "MIT",
+  "scripts": {
+    "start": "zotero-plugin serve",
+    "build": "zotero-plugin build && tsc --noEmit",
+    "lint:check": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write . && eslint . --fix",
+    "release": "zotero-plugin release",
+    "test": "zotero-plugin test"
+  },
+  "dependencies": {
+    "zotero-plugin-toolkit": "^5.1.0-beta.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@zotero-plugin/eslint-config": "^0.6.7",
+    "eslint": "^10.0.3",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "zotero-plugin-scaffold": "^0.8.2",
+    "zotero-types": "^4.1.0-beta.4"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "tabWidth": 2,
+    "endOfLine": "lf",
+    "overrides": [
+      {
+        "files": [
+          "*.xhtml"
+        ],
+        "options": {
+          "htmlWhitespaceSensitivity": "css"
+        }
+      }
+    ]
+  }
+}
