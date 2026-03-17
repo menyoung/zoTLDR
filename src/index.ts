@@ -4,13 +4,13 @@ import { config } from "../package.json";
 
 const basicTool = new BasicTool();
 
-if (!basicTool.getGlobal("Zotero")[config.addonInstance]) {
+if (!(basicTool.getGlobal("Zotero") as any)[config.addonInstance]) {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   _globalThis.addon = new Addon();
   defineGlobal("ztoolkit", () => {
     return _globalThis.addon.data.ztoolkit;
   });
-  Zotero[config.addonInstance] = addon;
+  (Zotero as any)[config.addonInstance] = addon;
 }
 
 function defineGlobal(name: string, getter?: () => any) {

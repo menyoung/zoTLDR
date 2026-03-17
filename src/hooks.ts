@@ -1,6 +1,8 @@
-import { config } from "../package.json";
 import { initLocale } from "./utils/locale";
 import { createZToolkit } from "./utils/ztoolkit";
+import { registerItemPaneSection } from "./modules/itemPane";
+import { initPrefsWindow, registerPrefs } from "./modules/prefs";
+import { registerContextMenu } from "./modules/ui";
 
 async function onStartup() {
   await Promise.all([
@@ -11,15 +13,15 @@ async function onStartup() {
 
   initLocale();
 
-  // TODO: registerPrefs()
-  // TODO: registerItemPaneSection()
-  // TODO: registerContextMenu()
+  registerPrefs();
+  registerItemPaneSection();
 
   addon.data.initialized = true;
 }
 
 async function onMainWindowLoad(win: Window): Promise<void> {
   addon.data.ztoolkit = createZToolkit();
+  registerContextMenu();
 }
 
 async function onMainWindowUnload(win: Window): Promise<void> {
@@ -32,7 +34,9 @@ async function onShutdown(): Promise<void> {
 }
 
 function onPrefsEvent(type: string, data: { window: Window }) {
-  // TODO: wire up highlights textarea auto-save
+  if (type === "load") {
+    initPrefsWindow(data.window);
+  }
 }
 
 export default {
