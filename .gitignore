@@ -1,0 +1,7 @@
+node_modules/
+.scaffold/
+*.xpi
+.env
+.DS_Store
+typings/i10n.d.ts
+typings/prefs.d.ts
