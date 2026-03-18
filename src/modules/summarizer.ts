@@ -89,8 +89,16 @@ function buildChatPrompt(
 ): { systemPrompt: string; messages: ChatMessage[] } {
   const session = getSession(itemID);
   let systemPrompt = contextConfig.systemPrompt;
-  systemPrompt +=
-    "\n\nWhen responding to follow-up messages, always return the complete updated summary text, incorporating the requested changes.";
+  systemPrompt += `
+
+FORMAT RULES (strict):
+- Do NOT repeat the title, authors, year, or journal — the reader already has this metadata.
+- Use only ## and ### headings. Keep to 3-5 sections max.
+- Keep the total summary under 300 words. Be dense, not exhaustive.
+- Use plain text for units and formulas (e.g. "C2H2", "10 um", "La"). No LaTeX, no dollar signs.
+- Do NOT use bullet lists with * or -. Write in short paragraphs instead.
+- Bold key terms or values with **double asterisks**.
+- When responding to follow-up messages, always return the complete updated summary text, incorporating the requested changes.`;
 
   const messages: ChatMessage[] = [
     {

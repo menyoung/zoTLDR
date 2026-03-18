@@ -19,8 +19,8 @@ export function markdownToHTML(md: string): string {
     if (!trimmed) continue;
 
     // Check if this block is a heading
-    const h2Match = trimmed.match(/^## (.+)$/);
-    const h3Match = trimmed.match(/^### (.+)$/);
+    const h2Match = trimmed.match(/^## (.+?)[\s]*$/);
+    const h3Match = trimmed.match(/^### (.+?)[\s]*$/);
 
     if (h3Match) {
       htmlBlocks.push(`<h3>${escapeHTML(h3Match[1])}</h3>`);
@@ -65,7 +65,12 @@ export function getExistingSummary(parentItem: Zotero.Item): string {
   // Strip HTML to get plain text/markdown back
   return note
     .getNote()
+    .replace(/<h2[^>]*>/gi, "\n\n## ")
+    .replace(/<\/h2>/gi, "\n\n")
+    .replace(/<h3[^>]*>/gi, "\n\n### ")
+    .replace(/<\/h3>/gi, "\n\n")
     .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
     .replace(/<\/p>\s*<p>/gi, "\n\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&amp;/g, "&")
@@ -74,6 +79,7 @@ export function getExistingSummary(parentItem: Zotero.Item): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -120,8 +126,9 @@ export async function writeErrorNote(
   const note = existing ?? new Zotero.Item("note");
 
   const timestamp = new Date().toISOString();
+  const safeError = escapeHTML(error);
   note.setNote(
-    `<p><strong>zoTLDR Error</strong> (${timestamp})</p><p>${error.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`,
+    `<p><strong>zoTLDR Error</strong> (${timestamp})</p><p>${safeError}</p>`,
   );
   if (!existing) {
     note.parentID = parentItem.id;
