@@ -113,17 +113,17 @@ FORMAT RULES (strict):
 }
 
 export async function summarize(item: Zotero.Item): Promise<string> {
-  const contextConfig = await loadContextDoc();
-  const extracted = await getFullText(item);
-  if (!extracted) throw new Error("NO_PDF_TEXT");
-
-  const { systemPrompt, messages } = buildSummarizePrompt(
-    contextConfig,
-    item,
-    extracted.text,
-  );
-
   try {
+    const contextConfig = await loadContextDoc();
+    const extracted = await getFullText(item);
+    if (!extracted) throw new Error("NO_PDF_TEXT");
+
+    const { systemPrompt, messages } = buildSummarizePrompt(
+      contextConfig,
+      item,
+      extracted.text,
+    );
+
     const response = await callLLM({
       config: contextConfig,
       systemPrompt,
