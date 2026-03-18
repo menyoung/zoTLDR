@@ -4,6 +4,17 @@ import { callLLM } from "./llm";
 import { writeErrorNote } from "./noteWriter";
 import { ChatMessage, getSession } from "./sessionState";
 
+const FORMAT_RULES = `
+FORMAT RULES (strict):
+- Do NOT repeat the title, authors, year, or journal — the reader already has this metadata.
+- Start with a 1-2 sentence "Bottom line" stating the main finding or contribution.
+- Use only ## and ### headings. Keep to 3-5 sections max.
+- Keep the total summary under 300 words. Be dense, not exhaustive.
+- Use plain text for units and formulas (e.g. "C2H2", "10 um", "La"). No LaTeX, no dollar signs.
+- Do NOT use bullet lists with * or -. Write in short paragraphs instead.
+- Bold key terms or values with **double asterisks**.
+- When responding to follow-up messages, always return the complete updated summary text, incorporating the requested changes.`;
+
 function truncateText(text: string, charBudget: number): string {
   if (text.length <= charBudget) return text;
 
@@ -41,17 +52,7 @@ function buildSummarizePrompt(
 
   let systemPrompt = contextConfig.systemPrompt;
 
-  systemPrompt += `
-
-FORMAT RULES (strict):
-- Do NOT repeat the title, authors, year, or journal — the reader already has this metadata.
-- Start with a 1-2 sentence "Bottom line" stating the main finding or contribution.
-- Use only ## and ### headings. Keep to 3-5 sections max.
-- Keep the total summary under 300 words. Be dense, not exhaustive.
-- Use plain text for units and formulas (e.g. "C2H2", "10 um", "La"). No LaTeX, no dollar signs.
-- Do NOT use bullet lists with * or -. Write in short paragraphs instead.
-- Bold key terms or values with **double asterisks**.
-- When responding to follow-up messages, always return the complete updated summary text, incorporating the requested changes.`;
+  systemPrompt += FORMAT_RULES;
 
   if (highlights?.trim()) {
     systemPrompt += `\n\nThe scientist reviewing this paper has specifically asked you to flag:\n${highlights.trim()}\n\nIf the paper contains anything directly relevant to the above, include a "## ⚑ Highlighted Findings" section. Omit this section entirely if nothing is relevant — do not pad.`;
@@ -89,16 +90,7 @@ function buildChatPrompt(
 ): { systemPrompt: string; messages: ChatMessage[] } {
   const session = getSession(itemID);
   let systemPrompt = contextConfig.systemPrompt;
-  systemPrompt += `
-
-FORMAT RULES (strict):
-- Do NOT repeat the title, authors, year, or journal — the reader already has this metadata.
-- Use only ## and ### headings. Keep to 3-5 sections max.
-- Keep the total summary under 300 words. Be dense, not exhaustive.
-- Use plain text for units and formulas (e.g. "C2H2", "10 um", "La"). No LaTeX, no dollar signs.
-- Do NOT use bullet lists with * or -. Write in short paragraphs instead.
-- Bold key terms or values with **double asterisks**.
-- When responding to follow-up messages, always return the complete updated summary text, incorporating the requested changes.`;
+  systemPrompt += FORMAT_RULES;
 
   const messages: ChatMessage[] = [
     {

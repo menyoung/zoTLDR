@@ -33,8 +33,8 @@ export function initSession(
   return s;
 }
 
-export function clearSession(itemID: number): void {
-  sessions.delete(itemID);
+export function clearAllSessions(): void {
+  sessions.clear();
 }
 
 export type { ChatMessage, SessionState };

@@ -1,25 +1,11 @@
 import { config } from "../../package.json";
+import { stripHTML } from "../utils/html";
 
 export interface ContextConfig {
   apiKey: string;
   model: string;
   maxTokens: number;
   systemPrompt: string;
-}
-
-function stripHTML(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/li>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ");
 }
 
 function parseFrontmatter(raw: string): {

@@ -2,6 +2,7 @@ import { initLocale } from "./utils/locale";
 import { createZToolkit } from "./utils/ztoolkit";
 import { registerItemPaneSection } from "./modules/itemPane";
 import { initPrefsWindow, registerPrefs } from "./modules/prefs";
+import { clearAllSessions } from "./modules/sessionState";
 import { registerContextMenu } from "./modules/ui";
 
 async function onStartup() {
@@ -29,6 +30,7 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 }
 
 async function onShutdown(): Promise<void> {
+  clearAllSessions();
   ztoolkit.unregisterAll();
   addon.data.alive = false;
 }

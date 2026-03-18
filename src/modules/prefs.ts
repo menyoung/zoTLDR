@@ -1,4 +1,5 @@
 import { config } from "../../package.json";
+import { stripHTML } from "../utils/html";
 
 export function registerPrefs() {
   Zotero.PreferencePanes.register({
@@ -105,7 +106,6 @@ export function initPrefsWindow(win: Window) {
 
       const note = notes[selected.value];
       keyInput.value = note.key;
-      keyInput.dispatchEvent(new Event("input"));
       Zotero.Prefs.set(
         `${config.prefsPrefix}.contextDocKey`,
         note.key,
@@ -140,10 +140,7 @@ async function findContextNotes(): Promise<ContextNoteInfo[]> {
     for (const id of ids) {
       const item = Zotero.Items.get(id);
       // Use first line of note text as a title preview
-      const noteText = item
-        .getNote()
-        .replace(/<[^>]+>/g, "")
-        .trim();
+      const noteText = stripHTML(item.getNote()).trim();
       const preview = noteText.slice(0, 60) || "(empty note)";
       results.push({
         key: item.key,

@@ -193,7 +193,7 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     setInFlight(true);
     loadContextDoc().then((contextConfig) => {
       const s = getSession(item.id);
-      commitSummary(item, s.workingSummary, contextConfig).then(
+      commitSummary(item, s.workingSummary, contextConfig.model).then(
         () => setTimeout(() => {
           s.isDirty = false;
           updateUI();

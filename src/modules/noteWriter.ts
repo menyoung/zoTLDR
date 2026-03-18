@@ -1,12 +1,4 @@
-import { ContextConfig } from "./contextDoc";
-
-function escapeHTML(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { escapeHTML, htmlToMarkdown } from "../utils/html";
 
 export function markdownToHTML(md: string): string {
   // Split into blocks on double newlines, process each block separately
@@ -18,9 +10,8 @@ export function markdownToHTML(md: string): string {
     const trimmed = block.trim();
     if (!trimmed) continue;
 
-    // Check if this block is a heading
-    const h2Match = trimmed.match(/^## (.+?)[\s]*$/);
     const h3Match = trimmed.match(/^### (.+?)[\s]*$/);
+    const h2Match = trimmed.match(/^## (.+?)[\s]*$/);
 
     if (h3Match) {
       htmlBlocks.push(`<h3>${escapeHTML(h3Match[1])}</h3>`);
@@ -33,7 +24,6 @@ export function markdownToHTML(md: string): string {
         htmlBlocks.push(`<h2>${escapeHTML(h2Match[1])}</h2>`);
       }
     } else {
-      // Regular paragraph — apply inline formatting
       let text = escapeHTML(trimmed)
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/\*(.+?)\*/g, "<em>$1</em>")
@@ -62,31 +52,13 @@ function findSummaryNote(
 export function getExistingSummary(parentItem: Zotero.Item): string {
   const note = findSummaryNote(parentItem, "zs-summary");
   if (!note) return "";
-  // Strip HTML to get plain text/markdown back
-  return note
-    .getNote()
-    .replace(/<h2[^>]*>/gi, "\n\n## ")
-    .replace(/<\/h2>/gi, "\n\n")
-    .replace(/<h3[^>]*>/gi, "\n\n### ")
-    .replace(/<\/h3>/gi, "\n\n")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<\/p>\s*<p>/gi, "\n\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return htmlToMarkdown(note.getNote());
 }
 
 export async function commitSummary(
   parentItem: Zotero.Item,
   workingSummary: string,
-  config: ContextConfig,
+  model: string,
 ): Promise<void> {
   const existing = findSummaryNote(parentItem, "zs-summary");
   const note = existing ?? new Zotero.Item("note");
@@ -100,7 +72,7 @@ export async function commitSummary(
   const today = new Date().toISOString().slice(0, 10);
   const tags: { tag: string; type: number }[] = [
     { tag: "zs-summary", type: 0 },
-    { tag: `zs-model:${config.model}`, type: 0 },
+    { tag: `zs-model:${model}`, type: 0 },
     { tag: `zs-date:${today}`, type: 0 },
   ];
 
@@ -111,7 +83,6 @@ export async function commitSummary(
   note.setTags(tags);
   await note.saveTx();
 
-  // Tag the parent item
   if (!parentItem.getTags().some((t: { tag: string }) => t.tag === "zs-summarized")) {
     parentItem.addTag("zs-summarized");
     await parentItem.saveTx();
