@@ -1,4 +1,5 @@
 import { config } from "../../package.json";
+import { humanizeError } from "../utils/html";
 import { loadContextDoc } from "./contextDoc";
 import { commitSummary, getExistingSummary, markdownToHTML } from "./noteWriter";
 import { getSession, initSession } from "./sessionState";
@@ -85,7 +86,9 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   const input = doc.createElement("input");
   input.type = "text";
-  input.placeholder = "Ask a follow-up...";
+  input.placeholder = session.workingSummary
+    ? "Ask a follow-up..."
+    : "Summarize first, then ask follow-ups";
 
   const sendBtn = doc.createElement("button");
   sendBtn.textContent = "Send";
@@ -103,7 +106,7 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   const commitBtn = doc.createElement("button");
   commitBtn.textContent = "Commit";
-  commitBtn.disabled = !session.isDirty;
+  commitBtn.disabled = !session.isDirty || !session.workingSummary.trim();
 
   const reloadBtn = doc.createElement("button");
   reloadBtn.textContent = "↺";
@@ -148,7 +151,10 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
       ? markdownToHTML(s.workingSummary)
       : "";
     dirtyEl.textContent = s.isDirty ? "(unsaved changes)" : "";
-    commitBtn.disabled = !s.isDirty;
+    commitBtn.disabled = !s.isDirty || !s.workingSummary.trim();
+    input.placeholder = s.workingSummary
+      ? "Ask a follow-up..."
+      : "Summarize first, then ask follow-ups";
 
     chatBox.innerHTML = "";
     renderChatMessages(doc, chatBox, s.chatHistory);
@@ -163,7 +169,7 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     summarize(item).then(
       () => setTimeout(() => { updateUI(); setInFlight(false); }, 0),
       (e: any) => setTimeout(() => {
-        if (!isStale()) summaryBox.textContent = `Error: ${e.message ?? e}`;
+        if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
         setInFlight(false);
       }, 0),
     );
@@ -177,7 +183,7 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     chat(item, msg).then(
       () => setTimeout(() => { updateUI(); setInFlight(false); }, 0),
       (e: any) => setTimeout(() => {
-        if (!isStale()) summaryBox.textContent = `Error: ${e.message ?? e}`;
+        if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
         setInFlight(false);
       }, 0),
     );
@@ -204,12 +210,12 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
           }
         }, 0),
         (e: any) => setTimeout(() => {
-          if (!isStale()) summaryBox.textContent = `Error committing: ${e.message ?? e}`;
+          if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
           setInFlight(false);
         }, 0),
       );
     }).catch((e: any) => setTimeout(() => {
-      if (!isStale()) summaryBox.textContent = `Error committing: ${e.message ?? e}`;
+      if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
       setInFlight(false);
     }, 0));
   });

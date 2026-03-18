@@ -12,6 +12,13 @@ export function registerContextMenu() {
       {
         menuType: "menuitem",
         l10nID: `${config.addonRef}-menuitem-summarize`,
+        onShowing: (_event: Event, context: { items?: Zotero.Item[] }) => {
+          // Ensure the label is set even if l10n fails
+          const el = _event.target as Element | null;
+          if (el && !el.getAttribute("label")) {
+            el.setAttribute("label", "Summarize with AI");
+          }
+        },
         onCommand: async (
           _event: Event,
           context: { items?: Zotero.Item[] },

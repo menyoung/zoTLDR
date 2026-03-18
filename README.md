@@ -68,6 +68,18 @@ Click **↺** to discard changes and reload from the last committed note.
 
 Select multiple items, right-click → Summarize with AI. Items are processed one at a time with a configurable delay between them.
 
+## Troubleshooting
+
+**"No PDF text found"** — The attachment may be a scanned image or protected PDF. Check if Zotero can extract text: right-click the attachment → Reindex Item.
+
+**"Context document not configured"** — Go to Settings → zoTLDR → Advanced → click "Pick from library..." to select your `zs-context` note.
+
+**"API key missing"** — Verify your `zs-context` note has `api_key: AIzaSy...` in the frontmatter (between the `---` lines).
+
+**"API error"** — Check that your Google API key is active and has the Generative Language API enabled in Google Cloud Console.
+
+**Nothing happens when clicking Summarize** — Make sure you selected a regular item (not a note or attachment). Check Tools → Developer → Error Console for details.
+
 ## Tags
 
 The plugin uses tags to track state:

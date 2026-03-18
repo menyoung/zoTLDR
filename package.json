@@ -1,7 +1,7 @@
 {
   "name": "zotldr",
   "type": "module",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "AI-powered paper summarization for Zotero with iterative chat refinement",
   "config": {
     "addonName": "zoTLDR",

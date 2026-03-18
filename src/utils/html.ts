@@ -1,3 +1,22 @@
+const ERROR_MESSAGES: Record<string, string> = {
+  NO_PDF_TEXT:
+    "No PDF text found. Ensure the item has a PDF attachment with extractable text.",
+  NO_CONTEXT_DOC:
+    "Context document not configured. Go to Settings → zoTLDR → Advanced and pick a context document.",
+  CONTEXT_DOC_NOT_FOUND:
+    "Context document not found. It may have been deleted. Reconfigure in Settings → zoTLDR.",
+  NO_API_KEY:
+    "API key missing from context document. Check that the frontmatter contains api_key.",
+  API_ERROR: "API error. Check your API key and try again.",
+};
+
+export function humanizeError(error: string): string {
+  for (const [code, msg] of Object.entries(ERROR_MESSAGES)) {
+    if (error.includes(code)) return msg;
+  }
+  return error;
+}
+
 export function escapeHTML(text: string): string {
   return text
     .replace(/&/g, "&amp;")

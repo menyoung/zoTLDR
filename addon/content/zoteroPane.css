@@ -59,6 +59,22 @@
 
 .zotldr-button-row button {
   font-size: 12px;
+  cursor: pointer;
+}
+
+.zotldr-button-row button:hover {
+  opacity: 0.85;
+}
+
+.zotldr-button-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.zotldr-button-row button:focus,
+.zotldr-input-row input:focus {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
 }
 
 .zotldr-dirty-indicator {
