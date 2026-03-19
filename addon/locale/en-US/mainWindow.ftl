@@ -1,2 +1,2 @@
 item-section-summary-head-text =
-    .label = AI Summary
+    .label = AI Chat

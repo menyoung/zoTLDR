@@ -3,7 +3,6 @@ import { createZToolkit } from "./utils/ztoolkit";
 import { registerItemPaneSection } from "./modules/itemPane";
 import { initPrefsWindow, registerPrefs } from "./modules/prefs";
 import { clearAllSessions } from "./modules/sessionState";
-import { registerContextMenu } from "./modules/ui";
 
 async function onStartup() {
   await Promise.all([
@@ -22,7 +21,6 @@ async function onStartup() {
 
 async function onMainWindowLoad(win: Window): Promise<void> {
   addon.data.ztoolkit = createZToolkit();
-  registerContextMenu();
 }
 
 async function onMainWindowUnload(win: Window): Promise<void> {

@@ -41,7 +41,10 @@ export async function loadContextDoc(): Promise<ContextConfig> {
   let doc: Zotero.Item | false = false;
   const libraries = Zotero.Libraries.getAll();
   for (const lib of libraries) {
-    const found = await Zotero.Items.getByLibraryAndKeyAsync(lib.libraryID, key);
+    const found = await Zotero.Items.getByLibraryAndKeyAsync(
+      lib.libraryID,
+      key,
+    );
     if (found) {
       doc = found;
       break;

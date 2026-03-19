@@ -1,14 +1,12 @@
 import { config } from "../../package.json";
 import { humanizeError } from "../utils/html";
 import { loadContextDoc } from "./contextDoc";
-import { commitSummary, getExistingSummary, markdownToHTML } from "./noteWriter";
-import { getSession, initSession } from "./sessionState";
-import { chat, summarize } from "./summarizer";
+import { saveChat, markdownToHTML } from "./noteWriter";
+import { ChatMessage, clearSession, getSession } from "./sessionState";
+import { chat } from "./summarizer";
 
 const SECTION_ID = "zotldr-summary-section";
 
-// Track which item the panel is currently rendering and a generation counter
-// so stale async callbacks become no-ops
 let currentItemID: number | null = null;
 let renderGen = 0;
 
@@ -29,7 +27,6 @@ export function registerItemPaneSection() {
       renderPanel(props.body, props.item);
     },
     onItemChange: (props) => {
-      // Only re-render if the item actually changed
       if (props.item.id !== currentItemID) {
         currentItemID = props.item.id;
         renderPanel(props.body, props.item);
@@ -44,7 +41,6 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   const doc = body.ownerDocument!;
 
-  // Load stylesheet
   const link = doc.createElement("link");
   link.setAttribute("rel", "stylesheet");
   link.setAttribute(
@@ -53,28 +49,9 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
   );
   body.appendChild(link);
 
-  // Initialize session if needed
-  const existing = getExistingSummary(item);
-  let session = getSession(item.id);
-  if (!session.workingSummary && existing) {
-    session = initSession(item.id, existing);
-  }
+  const session = getSession(item.id);
 
-  // Summary box
-  const summaryBox = doc.createElement("div");
-  summaryBox.className = "zotldr-summary-box";
-  if (session.workingSummary) {
-    summaryBox.innerHTML = markdownToHTML(session.workingSummary);
-  }
-  body.appendChild(summaryBox);
-
-  // Dirty indicator
-  const dirtyEl = doc.createElement("span");
-  dirtyEl.className = "zotldr-dirty-indicator";
-  dirtyEl.textContent = session.isDirty ? "(unsaved changes)" : "";
-  body.appendChild(dirtyEl);
-
-  // Chat history box
+  // Chat transcript
   const chatBox = doc.createElement("div");
   chatBox.className = "zotldr-chat-box";
   renderChatMessages(doc, chatBox, session.chatHistory);
@@ -86,9 +63,7 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   const input = doc.createElement("input");
   input.type = "text";
-  input.placeholder = session.workingSummary
-    ? "Ask a follow-up..."
-    : "Summarize first, then ask follow-ups";
+  input.placeholder = "Ask about this paper\u2026";
 
   const sendBtn = doc.createElement("button");
   sendBtn.textContent = "Send";
@@ -101,20 +76,16 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
   const buttonRow = doc.createElement("div");
   buttonRow.className = "zotldr-button-row";
 
-  const summarizeBtn = doc.createElement("button");
-  summarizeBtn.textContent = "Summarize";
+  const saveBtn = doc.createElement("button");
+  saveBtn.textContent = "Save";
+  saveBtn.disabled = !session.isDirty || session.chatHistory.length === 0;
 
-  const commitBtn = doc.createElement("button");
-  commitBtn.textContent = "Commit";
-  commitBtn.disabled = !session.isDirty || !session.workingSummary.trim();
+  const clearBtn = doc.createElement("button");
+  clearBtn.textContent = "Clear";
+  clearBtn.disabled = session.chatHistory.length === 0;
 
-  const reloadBtn = doc.createElement("button");
-  reloadBtn.textContent = "↺";
-  reloadBtn.title = "Reload from saved note";
-
-  buttonRow.appendChild(summarizeBtn);
-  buttonRow.appendChild(commitBtn);
-  buttonRow.appendChild(reloadBtn);
+  buttonRow.appendChild(saveBtn);
+  buttonRow.appendChild(clearBtn);
   body.appendChild(buttonRow);
 
   // --- State helpers ---
@@ -130,9 +101,8 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     inFlight = busy;
     input.disabled = busy;
     sendBtn.disabled = busy;
-    summarizeBtn.disabled = busy;
-    commitBtn.disabled = busy;
-    reloadBtn.disabled = busy;
+    saveBtn.disabled = busy;
+    clearBtn.disabled = busy;
 
     const existingSpinner = body.querySelector(".zotldr-spinner");
     if (busy && !existingSpinner) {
@@ -147,14 +117,8 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
   function updateUI() {
     if (isStale()) return;
     const s = getSession(item.id);
-    summaryBox.innerHTML = s.workingSummary
-      ? markdownToHTML(s.workingSummary)
-      : "";
-    dirtyEl.textContent = s.isDirty ? "(unsaved changes)" : "";
-    commitBtn.disabled = !s.isDirty || !s.workingSummary.trim();
-    input.placeholder = s.workingSummary
-      ? "Ask a follow-up..."
-      : "Summarize first, then ask follow-ups";
+    saveBtn.disabled = !s.isDirty || s.chatHistory.length === 0;
+    clearBtn.disabled = s.chatHistory.length === 0;
 
     chatBox.innerHTML = "";
     renderChatMessages(doc, chatBox, s.chatHistory);
@@ -163,29 +127,27 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   // --- Event handlers ---
 
-  summarizeBtn.addEventListener("click", () => {
-    if (inFlight) return;
-    setInFlight(true);
-    summarize(item).then(
-      () => setTimeout(() => { updateUI(); setInFlight(false); }, 0),
-      (e: any) => setTimeout(() => {
-        if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
-        setInFlight(false);
-      }, 0),
-    );
-  });
-
   function doSend() {
     const msg = input.value.trim();
     if (!msg || inFlight) return;
     input.value = "";
     setInFlight(true);
     chat(item, msg).then(
-      () => setTimeout(() => { updateUI(); setInFlight(false); }, 0),
-      (e: any) => setTimeout(() => {
-        if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
-        setInFlight(false);
-      }, 0),
+      () =>
+        setTimeout(() => {
+          updateUI();
+          setInFlight(false);
+        }, 0),
+      (e: any) =>
+        setTimeout(() => {
+          if (!isStale()) {
+            const errorDiv = doc.createElement("div");
+            errorDiv.className = "zotldr-chat-error";
+            errorDiv.textContent = humanizeError(e.message ?? String(e));
+            chatBox.appendChild(errorDiv);
+          }
+          setInFlight(false);
+        }, 0),
     );
   }
 
@@ -194,45 +156,65 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     if (e.key === "Enter") doSend();
   });
 
-  commitBtn.addEventListener("click", () => {
+  saveBtn.addEventListener("click", () => {
     if (inFlight) return;
     setInFlight(true);
-    loadContextDoc().then((contextConfig) => {
-      const s = getSession(item.id);
-      commitSummary(item, s.workingSummary, contextConfig.model).then(
-        () => setTimeout(() => {
-          s.isDirty = false;
-          updateUI();
-          setInFlight(false);
+    loadContextDoc()
+      .then((contextConfig) => {
+        const s = getSession(item.id);
+        saveChat(item, s.chatHistory, contextConfig.model).then(
+          () =>
+            setTimeout(() => {
+              s.isDirty = false;
+              updateUI();
+              setInFlight(false);
+              if (!isStale()) {
+                saveBtn.textContent = "\u2713 Saved";
+                setTimeout(() => {
+                  saveBtn.textContent = "Save";
+                }, 2000);
+              }
+            }, 0),
+          (e: any) =>
+            setTimeout(() => {
+              if (!isStale()) {
+                const errorDiv = doc.createElement("div");
+                errorDiv.className = "zotldr-chat-error";
+                errorDiv.textContent = humanizeError(e.message ?? String(e));
+                chatBox.appendChild(errorDiv);
+              }
+              setInFlight(false);
+            }, 0),
+        );
+      })
+      .catch((e: any) =>
+        setTimeout(() => {
           if (!isStale()) {
-            commitBtn.textContent = "✓ Committed";
-            setTimeout(() => { commitBtn.textContent = "Commit"; }, 2000);
+            const errorDiv = doc.createElement("div");
+            errorDiv.className = "zotldr-chat-error";
+            errorDiv.textContent = humanizeError(e.message ?? String(e));
+            chatBox.appendChild(errorDiv);
           }
-        }, 0),
-        (e: any) => setTimeout(() => {
-          if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
           setInFlight(false);
         }, 0),
       );
-    }).catch((e: any) => setTimeout(() => {
-      if (!isStale()) summaryBox.textContent = humanizeError(e.message ?? String(e));
-      setInFlight(false);
-    }, 0));
   });
 
-  reloadBtn.addEventListener("click", () => {
+  clearBtn.addEventListener("click", () => {
     const s = getSession(item.id);
     if (s.isDirty) {
-      if (reloadBtn.textContent === "Discard changes?") {
-        initSession(item.id, getExistingSummary(item));
+      if (clearBtn.textContent === "Discard?") {
+        clearSession(item.id);
         updateUI();
-        reloadBtn.textContent = "↺";
+        clearBtn.textContent = "Clear";
       } else {
-        reloadBtn.textContent = "Discard changes?";
-        setTimeout(() => { reloadBtn.textContent = "↺"; }, 3000);
+        clearBtn.textContent = "Discard?";
+        setTimeout(() => {
+          clearBtn.textContent = "Clear";
+        }, 3000);
       }
     } else {
-      initSession(item.id, getExistingSummary(item));
+      clearSession(item.id);
       updateUI();
     }
   });
@@ -241,16 +223,17 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 function renderChatMessages(
   doc: Document,
   container: HTMLElement,
-  messages: { role: string; content: string }[],
+  messages: ChatMessage[],
 ) {
   for (const msg of messages) {
     const div = doc.createElement("div");
-    div.className =
-      msg.role === "user" ? "zotldr-chat-user" : "zotldr-chat-assistant";
-    // Only show user messages in full; assistant responses are already
-    // reflected in the summary box, so just show a brief confirmation
-    div.textContent =
-      msg.role === "user" ? `You: ${msg.content}` : "✓ Summary updated";
+    if (msg.role === "user") {
+      div.className = "zotldr-chat-user";
+      div.textContent = msg.content;
+    } else {
+      div.className = "zotldr-chat-assistant";
+      div.innerHTML = markdownToHTML(msg.content);
+    }
     container.appendChild(div);
   }
 }

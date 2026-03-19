@@ -57,5 +57,7 @@ export function htmlToMarkdown(html: string): string {
       .replace(/<\/div>/gi, "\n")
       .replace(/<\/p>\s*<p>/gi, "\n\n")
       .replace(/<[^>]+>/g, ""),
-  ).replace(/\n{3,}/g, "\n\n").trim();
+  )
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
