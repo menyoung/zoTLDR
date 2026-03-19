@@ -22,6 +22,7 @@ Create a **note** in your Zotero library (ideally a group library so the whole t
 api_key: AIzaSy...
 model: gemini-3-flash-preview
 max_tokens: 2000
+actions: Summarize, Key findings, Methods, Limitations
 ---
 
 You are a research assistant for a materials research team.
@@ -30,6 +31,7 @@ Always note sample preparation details and characterization methods used.
 ```
 
 - **Frontmatter** (`api_key`, `model`, `max_tokens`) is parsed as configuration
+- **`actions`** (optional) — comma-separated list of quick-action buttons that appear above the chat. Each button sends its label as a chat message. Teams can customize these to common tasks.
 - **Everything below the closing `---`** is sent to the LLM as the system prompt — write whatever domain context helps the AI understand your team's work
 
 ### 2. Configure the plugin
@@ -52,9 +54,10 @@ Examples:
 
 The conversation persists as you navigate between items within a Zotero session.
 
-### Save a conversation
+### Save
 
-Click **Save** to write the chat transcript as a child note (tagged `zs-chat`) on the item.
+- **Save chat** — writes the full conversation as a child note (tagged `zs-chat`)
+- **Save response** — writes just the last AI response as a standalone note (tagged `zs-note`). Useful for saving a summary, comparison table, or other specific output.
 
 Click **Clear** to reset the conversation. If there are unsaved changes, you'll be asked to confirm.
 
@@ -74,6 +77,7 @@ Click **Clear** to reset the conversation. If there are unsaved changes, you'll 
 |---|---|---|
 | `zs-context` | Note | Shared context/config document |
 | `zs-chat` | Child note | Saved chat transcript |
+| `zs-note` | Child note | Saved individual AI response |
 | `zs-model:*` | Child note | Which model produced the response |
 | `zs-date:*` | Child note | When the conversation was saved |
 | `zs-error` | Child note | API error log |

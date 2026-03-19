@@ -1,7 +1,7 @@
 import { config } from "../../package.json";
 import { humanizeError, markdownToHTML } from "../utils/html";
-import { loadContextDoc } from "./contextDoc";
-import { saveChat } from "./noteWriter";
+import { ContextConfig, loadContextDoc } from "./contextDoc";
+import { saveChat, saveResponse } from "./noteWriter";
 import { ChatMessage, clearSession, getSession } from "./sessionState";
 import { chat } from "./chat";
 
@@ -9,6 +9,7 @@ const SECTION_ID = "zotldr-summary-section";
 
 let currentItemID: number | null = null;
 let renderGen = 0;
+let cachedActions: string[] | null = null;
 
 export function registerItemPaneSection() {
   Zotero.ItemPaneManager.registerSection({
@@ -56,6 +57,11 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   const session = getSession(item.id);
 
+  // Quick actions (loaded async, rendered when ready)
+  const actionsRow = doc.createElement("div");
+  actionsRow.className = "zotldr-actions-row";
+  body.appendChild(actionsRow);
+
   // Chat transcript
   const chatBox = doc.createElement("div");
   chatBox.className = "zotldr-chat-box";
@@ -81,15 +87,20 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
   const buttonRow = doc.createElement("div");
   buttonRow.className = "zotldr-button-row";
 
-  const saveBtn = doc.createElement("button");
-  saveBtn.textContent = "Save";
-  saveBtn.disabled = !session.isDirty || session.chatHistory.length === 0;
+  const saveChatBtn = doc.createElement("button");
+  saveChatBtn.textContent = "Save chat";
+  saveChatBtn.disabled = !session.isDirty || session.chatHistory.length === 0;
+
+  const saveResponseBtn = doc.createElement("button");
+  saveResponseBtn.textContent = "Save response";
+  saveResponseBtn.disabled = session.chatHistory.length === 0;
 
   const clearBtn = doc.createElement("button");
   clearBtn.textContent = "Clear";
   clearBtn.disabled = session.chatHistory.length === 0;
 
-  buttonRow.appendChild(saveBtn);
+  buttonRow.appendChild(saveChatBtn);
+  buttonRow.appendChild(saveResponseBtn);
   buttonRow.appendChild(clearBtn);
   body.appendChild(buttonRow);
 
@@ -106,8 +117,14 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     inFlight = busy;
     input.disabled = busy;
     sendBtn.disabled = busy;
-    saveBtn.disabled = busy;
+    saveChatBtn.disabled = busy;
+    saveResponseBtn.disabled = busy;
     clearBtn.disabled = busy;
+
+    // Disable action buttons too
+    for (const btn of actionsRow.querySelectorAll("button")) {
+      (btn as HTMLButtonElement).disabled = busy;
+    }
 
     const existingSpinner = body.querySelector(".zotldr-spinner");
     if (busy && !existingSpinner) {
@@ -130,7 +147,8 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
   function updateUI() {
     if (isStale()) return;
     const s = getSession(item.id);
-    saveBtn.disabled = !s.isDirty || s.chatHistory.length === 0;
+    saveChatBtn.disabled = !s.isDirty || s.chatHistory.length === 0;
+    saveResponseBtn.disabled = s.chatHistory.length === 0;
     clearBtn.disabled = s.chatHistory.length === 0;
 
     chatBox.innerHTML = "";
@@ -138,10 +156,9 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // --- Event handlers ---
+  // --- Send a message (used by input, send button, and quick actions) ---
 
-  async function doSend() {
-    const msg = input.value.trim();
+  async function sendMessage(msg: string) {
     if (!msg || inFlight) return;
     input.value = "";
     setInFlight(true);
@@ -154,12 +171,14 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     setInFlight(false);
   }
 
-  sendBtn.addEventListener("click", doSend);
+  // --- Event handlers ---
+
+  sendBtn.addEventListener("click", () => sendMessage(input.value.trim()));
   input.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === "Enter") doSend();
+    if (e.key === "Enter") sendMessage(input.value.trim());
   });
 
-  saveBtn.addEventListener("click", async () => {
+  saveChatBtn.addEventListener("click", async () => {
     if (inFlight) return;
     setInFlight(true);
     try {
@@ -169,9 +188,34 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
       s.isDirty = false;
       updateUI();
       if (!isStale()) {
-        saveBtn.textContent = "\u2713 Saved";
+        saveChatBtn.textContent = "\u2713 Saved";
         setTimeout(() => {
-          saveBtn.textContent = "Save";
+          saveChatBtn.textContent = "Save chat";
+        }, 2000);
+      }
+    } catch (e: any) {
+      showError(e.message ?? String(e));
+    }
+    setInFlight(false);
+  });
+
+  saveResponseBtn.addEventListener("click", async () => {
+    if (inFlight) return;
+    const s = getSession(item.id);
+    // Find last assistant message
+    const lastResponse = [...s.chatHistory]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    if (!lastResponse) return;
+
+    setInFlight(true);
+    try {
+      const contextConfig = await loadContextDoc();
+      await saveResponse(item, lastResponse.content, contextConfig.model);
+      if (!isStale()) {
+        saveResponseBtn.textContent = "\u2713 Saved";
+        setTimeout(() => {
+          saveResponseBtn.textContent = "Save response";
         }, 2000);
       }
     } catch (e: any) {
@@ -198,6 +242,30 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
       updateUI();
     }
   });
+
+  // --- Load quick actions from context doc ---
+
+  loadActions().then((actions) => {
+    if (isStale() || actions.length === 0) return;
+    for (const label of actions) {
+      const btn = doc.createElement("button");
+      btn.textContent = label;
+      btn.disabled = inFlight;
+      btn.addEventListener("click", () => sendMessage(label));
+      actionsRow.appendChild(btn);
+    }
+  });
+}
+
+async function loadActions(): Promise<string[]> {
+  if (cachedActions !== null) return cachedActions;
+  try {
+    const ctx = await loadContextDoc();
+    cachedActions = ctx.actions;
+    return cachedActions;
+  } catch {
+    return [];
+  }
 }
 
 function renderChatMessages(

@@ -6,6 +6,7 @@ export interface ContextConfig {
   model: string;
   maxTokens: number;
   systemPrompt: string;
+  actions: string[];
 }
 
 function parseFrontmatter(raw: string): {
@@ -58,10 +59,18 @@ export async function loadContextDoc(): Promise<ContextConfig> {
 
   if (!frontmatter.api_key) throw new Error("NO_API_KEY");
 
+  const actions = frontmatter.actions
+    ? frontmatter.actions
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+
   return {
     apiKey: frontmatter.api_key,
     model: frontmatter.model ?? "gemini-3-flash-preview",
     maxTokens: parseInt(frontmatter.max_tokens ?? "2000", 10),
     systemPrompt: body.trim(),
+    actions,
   };
 }

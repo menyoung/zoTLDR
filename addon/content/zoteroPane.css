@@ -59,6 +59,36 @@
   border-radius: 2px;
 }
 
+.zotldr-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.zotldr-actions-row:empty {
+  display: none;
+}
+
+.zotldr-actions-row button {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: var(--fill-quinary);
+  border: none;
+  color: inherit;
+}
+
+.zotldr-actions-row button:hover {
+  opacity: 0.85;
+}
+
+.zotldr-actions-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .zotldr-chat-error {
   color: #c0392b;
   font-size: 12px;

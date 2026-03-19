@@ -47,6 +47,26 @@ export async function saveChat(
   await note.saveTx();
 }
 
+export async function saveResponse(
+  parentItem: Zotero.Item,
+  content: string,
+  model: string,
+): Promise<void> {
+  // Always create a new note (don't overwrite previous saves)
+  const note = new Zotero.Item("note");
+  note.setNote(markdownToHTML(content));
+  note.parentID = parentItem.id;
+  note.libraryID = parentItem.libraryID;
+
+  const today = new Date().toISOString().slice(0, 10);
+  note.setTags([
+    { tag: "zs-note", type: 0 },
+    { tag: `zs-model:${model}`, type: 0 },
+    { tag: `zs-date:${today}`, type: 0 },
+  ]);
+  await note.saveTx();
+}
+
 export async function writeErrorNote(
   parentItem: Zotero.Item,
   error: string,
