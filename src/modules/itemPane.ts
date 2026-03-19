@@ -1,7 +1,7 @@
 import { config } from "../../package.json";
-import { humanizeError } from "../utils/html";
+import { humanizeError, markdownToHTML } from "../utils/html";
 import { loadContextDoc } from "./contextDoc";
-import { saveChat, markdownToHTML } from "./noteWriter";
+import { saveChat } from "./noteWriter";
 import { ChatMessage, clearSession, getSession } from "./sessionState";
 import { chat } from "./chat";
 
@@ -28,6 +28,11 @@ export function registerItemPaneSection() {
     },
     onItemChange: (props) => {
       if (props.item.id !== currentItemID) {
+        // Free cached PDF data from the previous item's session
+        if (currentItemID !== null) {
+          const prev = getSession(currentItemID);
+          prev.pdfBase64 = "";
+        }
         currentItemID = props.item.id;
         renderPanel(props.body, props.item);
       }
@@ -114,6 +119,14 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     }
   }
 
+  function showError(error: string) {
+    if (isStale()) return;
+    const errorDiv = doc.createElement("div");
+    errorDiv.className = "zotldr-chat-error";
+    errorDiv.textContent = humanizeError(error);
+    chatBox.appendChild(errorDiv);
+  }
+
   function updateUI() {
     if (isStale()) return;
     const s = getSession(item.id);
@@ -127,28 +140,18 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
 
   // --- Event handlers ---
 
-  function doSend() {
+  async function doSend() {
     const msg = input.value.trim();
     if (!msg || inFlight) return;
     input.value = "";
     setInFlight(true);
-    chat(item, msg).then(
-      () =>
-        setTimeout(() => {
-          updateUI();
-          setInFlight(false);
-        }, 0),
-      (e: any) =>
-        setTimeout(() => {
-          if (!isStale()) {
-            const errorDiv = doc.createElement("div");
-            errorDiv.className = "zotldr-chat-error";
-            errorDiv.textContent = humanizeError(e.message ?? String(e));
-            chatBox.appendChild(errorDiv);
-          }
-          setInFlight(false);
-        }, 0),
-    );
+    try {
+      await chat(item, msg);
+      updateUI();
+    } catch (e: any) {
+      showError(e.message ?? String(e));
+    }
+    setInFlight(false);
   }
 
   sendBtn.addEventListener("click", doSend);
@@ -156,48 +159,25 @@ function renderPanel(body: HTMLElement, item: Zotero.Item) {
     if (e.key === "Enter") doSend();
   });
 
-  saveBtn.addEventListener("click", () => {
+  saveBtn.addEventListener("click", async () => {
     if (inFlight) return;
     setInFlight(true);
-    loadContextDoc()
-      .then((contextConfig) => {
-        const s = getSession(item.id);
-        saveChat(item, s.chatHistory, contextConfig.model).then(
-          () =>
-            setTimeout(() => {
-              s.isDirty = false;
-              updateUI();
-              setInFlight(false);
-              if (!isStale()) {
-                saveBtn.textContent = "\u2713 Saved";
-                setTimeout(() => {
-                  saveBtn.textContent = "Save";
-                }, 2000);
-              }
-            }, 0),
-          (e: any) =>
-            setTimeout(() => {
-              if (!isStale()) {
-                const errorDiv = doc.createElement("div");
-                errorDiv.className = "zotldr-chat-error";
-                errorDiv.textContent = humanizeError(e.message ?? String(e));
-                chatBox.appendChild(errorDiv);
-              }
-              setInFlight(false);
-            }, 0),
-        );
-      })
-      .catch((e: any) =>
+    try {
+      const contextConfig = await loadContextDoc();
+      const s = getSession(item.id);
+      await saveChat(item, s.chatHistory, contextConfig.model);
+      s.isDirty = false;
+      updateUI();
+      if (!isStale()) {
+        saveBtn.textContent = "\u2713 Saved";
         setTimeout(() => {
-          if (!isStale()) {
-            const errorDiv = doc.createElement("div");
-            errorDiv.className = "zotldr-chat-error";
-            errorDiv.textContent = humanizeError(e.message ?? String(e));
-            chatBox.appendChild(errorDiv);
-          }
-          setInFlight(false);
-        }, 0),
-      );
+          saveBtn.textContent = "Save";
+        }, 2000);
+      }
+    } catch (e: any) {
+      showError(e.message ?? String(e));
+    }
+    setInFlight(false);
   });
 
   clearBtn.addEventListener("click", () => {

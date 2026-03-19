@@ -8,22 +8,17 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   const chunkSize = 8192;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(
-      null,
-      chunk as unknown as number[],
-    );
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
   }
   return btoa(binary);
 }
 
-async function getPdfBase64(
-  item: Zotero.Item,
-): Promise<string | null> {
+async function getPdfBase64(item: Zotero.Item): Promise<string | null> {
   if (!item.isRegularItem()) return null;
   const attachment = await item.getBestAttachment();
   if (!attachment) return null;
 
-  const path = (attachment as any).getFilePath() as string | false;
+  const path = attachment.getFilePath();
   if (!path) return null;
 
   const bytes = await IOUtils.read(path);
@@ -80,7 +75,9 @@ export async function chat(
 
     return response;
   } catch (e: any) {
-    await writeErrorNote(item, e.message ?? String(e));
+    try {
+      await writeErrorNote(item, e.message ?? String(e));
+    } catch {}
     throw e;
   }
 }

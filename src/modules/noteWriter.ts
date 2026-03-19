@@ -1,32 +1,5 @@
-import { escapeHTML } from "../utils/html";
+import { escapeHTML, markdownToHTML } from "../utils/html";
 import { ChatMessage } from "./sessionState";
-
-export function markdownToHTML(md: string): string {
-  const blocks = md.split(/\n\n+/);
-  const htmlBlocks: string[] = [];
-
-  for (const block of blocks) {
-    const trimmed = block.trim();
-    if (!trimmed) continue;
-
-    const h3Match = trimmed.match(/^### (.+?)[\s]*$/);
-    const h2Match = trimmed.match(/^## (.+?)[\s]*$/);
-
-    if (h3Match) {
-      htmlBlocks.push(`<h3>${escapeHTML(h3Match[1])}</h3>`);
-    } else if (h2Match) {
-      htmlBlocks.push(`<h2>${escapeHTML(h2Match[1])}</h2>`);
-    } else {
-      let text = escapeHTML(trimmed)
-        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.+?)\*/g, "<em>$1</em>")
-        .replace(/\n/g, "<br/>");
-      htmlBlocks.push(`<p>${text}</p>`);
-    }
-  }
-
-  return htmlBlocks.join("");
-}
 
 function findNoteByTag(
   parentItem: Zotero.Item,

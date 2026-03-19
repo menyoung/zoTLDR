@@ -61,7 +61,7 @@ export async function loadContextDoc(): Promise<ContextConfig> {
   return {
     apiKey: frontmatter.api_key,
     model: frontmatter.model ?? "gemini-3-flash-preview",
-    maxTokens: parseInt(frontmatter.max_tokens ?? "2000"),
+    maxTokens: parseInt(frontmatter.max_tokens ?? "2000", 10),
     systemPrompt: body.trim(),
   };
 }
