@@ -3,18 +3,31 @@ import { callLLM } from "./llm";
 import { writeErrorNote } from "./noteWriter";
 import { ChatMessage, getSession } from "./sessionState";
 
-async function getFullText(
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(
+      null,
+      chunk as unknown as number[],
+    );
+  }
+  return btoa(binary);
+}
+
+async function getPdfBase64(
   item: Zotero.Item,
-): Promise<{ text: string; totalPages: number } | null> {
+): Promise<string | null> {
   if (!item.isRegularItem()) return null;
   const attachment = await item.getBestAttachment();
   if (!attachment) return null;
 
-  try {
-    return await Zotero.PDFWorker.getFullText(attachment.id, { maxPages: 50 });
-  } catch {
-    return null;
-  }
+  const path = (attachment as any).getFilePath() as string | false;
+  if (!path) return null;
+
+  const bytes = await IOUtils.read(path);
+  return uint8ArrayToBase64(bytes);
 }
 
 export async function chat(
@@ -25,10 +38,12 @@ export async function chat(
     const contextConfig = await loadContextDoc();
     const session = getSession(item.id);
 
-    // Load paper text on first message
-    if (!session.paperContext) {
-      const extracted = await getFullText(item);
-      if (!extracted) throw new Error("NO_PDF_TEXT");
+    // Load PDF on first message
+    if (!session.pdfBase64) {
+      const base64 = await getPdfBase64(item);
+      if (!base64) throw new Error("NO_PDF");
+
+      session.pdfBase64 = base64;
 
       const creators = item.getCreators();
       const authors = creators
@@ -37,11 +52,11 @@ export async function chat(
         )
         .join(", ");
 
-      session.paperContext = `Here is the paper I'd like to discuss:\n\nTitle: ${item.getField("title")}\nAuthors: ${authors}\nYear: ${item.getField("year")}\n\n${extracted.text}`;
+      session.paperMetadata = `Title: ${item.getField("title")}\nAuthors: ${authors}\nYear: ${item.getField("year")}`;
     }
 
     const messages: ChatMessage[] = [
-      { role: "user", content: session.paperContext },
+      { role: "user", content: session.paperMetadata },
       {
         role: "assistant",
         content: "I've read the paper. What would you like to discuss?",
@@ -54,6 +69,7 @@ export async function chat(
       config: contextConfig,
       systemPrompt: contextConfig.systemPrompt,
       messages,
+      pdfBase64: session.pdfBase64,
     });
 
     session.chatHistory.push(

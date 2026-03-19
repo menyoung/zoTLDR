@@ -3,7 +3,7 @@ import { humanizeError } from "../utils/html";
 import { loadContextDoc } from "./contextDoc";
 import { saveChat, markdownToHTML } from "./noteWriter";
 import { ChatMessage, clearSession, getSession } from "./sessionState";
-import { chat } from "./summarizer";
+import { chat } from "./chat";
 
 const SECTION_ID = "zotldr-summary-section";
 

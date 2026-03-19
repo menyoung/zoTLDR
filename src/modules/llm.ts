@@ -5,14 +5,31 @@ interface LLMRequest {
   config: ContextConfig;
   systemPrompt: string;
   messages: ChatMessage[];
+  pdfBase64?: string;
 }
 
 export async function callLLM(req: LLMRequest): Promise<string> {
   // Gemini expects alternating user/model turns with system instruction separate
-  const contents = req.messages.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+  const contents = req.messages.map((m, i) => {
+    const parts: Record<string, unknown>[] = [];
+
+    // Inject PDF as inline_data in the first user message
+    if (i === 0 && req.pdfBase64) {
+      parts.push({
+        inline_data: {
+          mime_type: "application/pdf",
+          data: req.pdfBase64,
+        },
+      });
+    }
+
+    parts.push({ text: m.content });
+
+    return {
+      role: m.role === "assistant" ? "model" : "user",
+      parts,
+    };
+  });
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${req.config.model}:generateContent?key=${req.config.apiKey}`,

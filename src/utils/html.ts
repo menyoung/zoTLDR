@@ -1,8 +1,8 @@
 const ERROR_MESSAGES: Record<string, string> = {
-  NO_PDF_TEXT:
-    "No PDF text found. Ensure the item has a PDF attachment with extractable text.",
+  NO_PDF:
+    "No PDF attachment found. Ensure the item has a PDF attachment.",
   NO_CONTEXT_DOC:
-    "Context document not configured. Go to Settings → zoTLDR → Advanced and pick a context document.",
+    "Context document not configured. Go to Settings → zoTLDR and pick a context document.",
   CONTEXT_DOC_NOT_FOUND:
     "Context document not found. It may have been deleted. Reconfigure in Settings → zoTLDR.",
   NO_API_KEY:
