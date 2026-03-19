@@ -1,8 +1,8 @@
 # zoTLDR
 
-AI-powered paper summarization for [Zotero 8](https://www.zotero.org/) using Google Gemini. Summarize papers, refine summaries through chat, and store results as Zotero notes — all from the item pane.
+Chat with AI about papers in [Zotero 8](https://www.zotero.org/) using Google Gemini. Ask questions, explore findings, and discuss any paper you have open — the PDF and your team's context are injected automatically.
 
-Designed for research teams: a shared **context document** configures the API key, model, and domain-specific system prompt centrally, so every team member gets consistent, domain-aware summaries.
+Designed for research teams: a shared **context document** configures the API key, model, and domain-specific system prompt centrally, so every team member gets consistent, domain-aware responses.
 
 ## Install
 
@@ -24,74 +24,58 @@ model: gemini-3-flash-preview
 max_tokens: 2000
 ---
 
-You are summarizing papers for a materials research team.
+You are a research assistant for a materials research team.
 Focus on: deposition chemistry, reactor conditions, microstructure outcomes.
 Always note sample preparation details and characterization methods used.
 ```
 
 - **Frontmatter** (`api_key`, `model`, `max_tokens`) is parsed as configuration
-- **Everything below the closing `---`** is sent to the LLM as the system prompt — write whatever domain context helps produce good summaries
+- **Everything below the closing `---`** is sent to the LLM as the system prompt — write whatever domain context helps the AI understand your team's work
 
 ### 2. Configure the plugin
 
-Go to Zotero → Settings → zoTLDR.
-
-- **My research focus** (main textarea): Describe what *you* personally care about. If a paper is relevant, the AI adds a "Highlighted Findings" section to the summary. Leave blank to skip.
-- **Advanced → Context document key**: Click **"Pick from library..."** to select your `zs-context` note. The picker finds all notes tagged `zs-context` across your libraries.
+Go to Zotero → Settings → zoTLDR → click **"Pick from library..."** to select your `zs-context` note. The picker finds all notes tagged `zs-context` across your libraries.
 
 ## Usage
 
-### Summarize a paper
+### Chat about a paper
 
-- Select an item and click **Summarize** in the AI Summary panel (right-side item pane), or
-- Right-click one or more items → **Summarize with AI**
+Select an item in your library. In the **AI Chat** panel (right-side item pane), type a question and press Enter. The full PDF is sent to the model on the first message — tables, figures, and equations included.
 
-The summary appears in the panel. It's held in memory as a working draft until you commit it.
+Examples:
 
-### Refine with chat
+- "What are the main findings?"
+- "How did they prepare the samples?"
+- "Compare the results in Table 2 to the claims in the introduction"
+- "Summarize this paper in 3 bullet points"
+- "What are the limitations of this study?"
 
-Type a follow-up in the input box and press Enter (or click Send). Examples:
+The conversation persists as you navigate between items within a Zotero session.
 
-- "Expand the methods section"
-- "Add a comparison to the Smith 2023 results"
-- "Make it shorter"
+### Save a conversation
 
-Each response replaces the working summary with an updated version.
+Click **Save** to write the chat transcript as a child note (tagged `zs-chat`) on the item.
 
-### Save the summary
-
-Click **Commit** to write the working summary as a child note (tagged `zs-summary`) on the item. The parent item gets a `zs-summarized` tag.
-
-Click **↺** to discard changes and reload from the last committed note.
-
-### Batch summarize
-
-Select multiple items, right-click → Summarize with AI. Items are processed one at a time with a configurable delay between them.
+Click **Clear** to reset the conversation. If there are unsaved changes, you'll be asked to confirm.
 
 ## Troubleshooting
 
-**"No PDF text found"** — The attachment may be a scanned image or protected PDF. Check if Zotero can extract text: right-click the attachment → Reindex Item.
+**"No PDF attachment found"** — The item needs a PDF attachment. Linked files and stored files both work.
 
-**"Context document not configured"** — Go to Settings → zoTLDR → Advanced → click "Pick from library..." to select your `zs-context` note.
+**"Context document not configured"** — Go to Settings → zoTLDR → click "Pick from library..." to select your `zs-context` note.
 
 **"API key missing"** — Verify your `zs-context` note has `api_key: AIzaSy...` in the frontmatter (between the `---` lines).
 
 **"API error"** — Check that your Google API key is active and has the Generative Language API enabled in Google Cloud Console.
 
-**Nothing happens when clicking Summarize** — Make sure you selected a regular item (not a note or attachment). Check Tools → Developer → Error Console for details.
-
 ## Tags
-
-The plugin uses tags to track state:
 
 | Tag | On | Meaning |
 |---|---|---|
-| `zs-context` | Note | Identifies the shared context/config document |
-| `zs-summary` | Child note | AI-generated summary |
-| `zs-summarized` | Parent item | Has been summarized at least once |
-| `zs-model:*` | Child note | Which model produced the summary |
-| `zs-date:*` | Child note | When the summary was generated |
-| `zs-has-highlights` | Child note | Summary contains a highlighted findings section |
+| `zs-context` | Note | Shared context/config document |
+| `zs-chat` | Child note | Saved chat transcript |
+| `zs-model:*` | Child note | Which model produced the response |
+| `zs-date:*` | Child note | When the conversation was saved |
 | `zs-error` | Child note | API error log |
 
 ## Development
