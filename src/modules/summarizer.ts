@@ -3,17 +3,6 @@ import { callLLM } from "./llm";
 import { writeErrorNote } from "./noteWriter";
 import { ChatMessage, getSession } from "./sessionState";
 
-function truncateText(text: string, charBudget: number): string {
-  if (text.length <= charBudget) return text;
-
-  const headSize = Math.floor(charBudget * 0.6);
-  const tailSize = Math.floor(charBudget * 0.4);
-  const head = text.slice(0, headSize);
-  const tail = text.slice(-tailSize);
-
-  return `${head}\n\n[... middle sections truncated ...]\n\n${tail}`;
-}
-
 async function getFullText(
   item: Zotero.Item,
 ): Promise<{ text: string; totalPages: number } | null> {
@@ -41,9 +30,6 @@ export async function chat(
       const extracted = await getFullText(item);
       if (!extracted) throw new Error("NO_PDF_TEXT");
 
-      const charBudget = contextConfig.maxTokens * 3;
-      const truncated = truncateText(extracted.text, charBudget);
-
       const creators = item.getCreators();
       const authors = creators
         .map((c: { firstName?: string; lastName?: string }) =>
@@ -51,7 +37,7 @@ export async function chat(
         )
         .join(", ");
 
-      session.paperContext = `Here is the paper I'd like to discuss:\n\nTitle: ${item.getField("title")}\nAuthors: ${authors}\nYear: ${item.getField("year")}\n\n${truncated}`;
+      session.paperContext = `Here is the paper I'd like to discuss:\n\nTitle: ${item.getField("title")}\nAuthors: ${authors}\nYear: ${item.getField("year")}\n\n${extracted.text}`;
     }
 
     const messages: ChatMessage[] = [
