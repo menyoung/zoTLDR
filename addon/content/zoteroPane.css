@@ -28,6 +28,37 @@
   margin: 4px 0 8px;
 }
 
+.zotldr-chat-assistant ul,
+.zotldr-chat-assistant ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.zotldr-chat-assistant li {
+  margin: 2px 0;
+}
+
+.zotldr-chat-assistant pre {
+  margin: 4px 0;
+  padding: 6px 8px;
+  background: var(--fill-quinary);
+  border-radius: 3px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.zotldr-chat-assistant code {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.zotldr-chat-assistant p code {
+  padding: 1px 4px;
+  background: var(--fill-quinary);
+  border-radius: 2px;
+}
+
 .zotldr-chat-error {
   color: #c0392b;
   font-size: 12px;

@@ -46,12 +46,31 @@ export function stripHTML(html: string): string {
 }
 
 export function markdownToHTML(md: string): string {
-  const blocks = md.split(/\n\n+/);
+  // Extract fenced code blocks before splitting on blank lines,
+  // so blank lines inside code blocks don't break them apart.
+  const codeBlocks: string[] = [];
+  const protected_ = md.replace(/```[^\n]*\n[\s\S]*?\n```/g, (match) => {
+    codeBlocks.push(match);
+    return `\x00CODE${codeBlocks.length - 1}\x00`;
+  });
+
+  const blocks = protected_.split(/\n\n+/);
   const htmlBlocks: string[] = [];
 
   for (const block of blocks) {
     const trimmed = block.trim();
     if (!trimmed) continue;
+
+    // Restore a protected code block
+    const codeRef = trimmed.match(/^\x00CODE(\d+)\x00$/);
+    if (codeRef) {
+      const raw = codeBlocks[parseInt(codeRef[1], 10)];
+      const code = escapeHTML(
+        raw.replace(/^```[^\n]*\n/, "").replace(/\n```$/, ""),
+      );
+      htmlBlocks.push(`<pre><code>${code}</code></pre>`);
+      continue;
+    }
 
     const h3Match = trimmed.match(/^### (.+?)[\s]*$/);
     const h2Match = trimmed.match(/^## (.+?)[\s]*$/);
@@ -61,25 +80,17 @@ export function markdownToHTML(md: string): string {
     } else if (h2Match) {
       htmlBlocks.push(`<h2>${escapeHTML(h2Match[1])}</h2>`);
     } else if (/^[\s]*[-*] /.test(trimmed)) {
-      // Bullet list block
       const items = trimmed.split(/\n/).map((line) => {
         const content = line.replace(/^[\s]*[-*] /, "");
         return `<li>${inlineFormat(content)}</li>`;
       });
       htmlBlocks.push(`<ul>${items.join("")}</ul>`);
     } else if (/^[\s]*\d+\. /.test(trimmed)) {
-      // Numbered list block
       const items = trimmed.split(/\n/).map((line) => {
         const content = line.replace(/^[\s]*\d+\. /, "");
         return `<li>${inlineFormat(content)}</li>`;
       });
       htmlBlocks.push(`<ol>${items.join("")}</ol>`);
-    } else if (trimmed.startsWith("```")) {
-      // Fenced code block
-      const code = escapeHTML(
-        trimmed.replace(/^```[^\n]*\n?/, "").replace(/\n?```$/, ""),
-      );
-      htmlBlocks.push(`<pre><code>${code}</code></pre>`);
     } else {
       htmlBlocks.push(`<p>${inlineFormat(trimmed)}</p>`);
     }
